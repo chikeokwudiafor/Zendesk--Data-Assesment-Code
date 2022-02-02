@@ -1,0 +1,158 @@
+-- Data Exploration 
+-- Check all the tables:
+
+select * FROM `zendesk-assesment.customeradvocacy.Ticket` LIMIT 10;
+
+-- EMPLOYEES CHECKING 
+-- We have only 195 employees in the data provided, which means there is a chance that one Ticket services many tickets.
+select count(distinct EmployeeID) from `zendesk-assesment.customeradvocacy.Ticket`;
+-- checking how many tickets were handled per employee -- can be used to figure out more things
+select EmployeeID, count(TicketID) as count_of_tickets
+ from `zendesk-assesment.customeradvocacy.Ticket`
+ group by EmployeeID
+ order by count_of_tickets desc;
+-- Manila location has only 9 employees serving about 34,668 tickets
+ select  WorkerLocation, count( DISTINCT EmployeeID) as count_of_employees, COUNT(TicketID) as count_of_tickets
+ from  `zendesk-assesment.customeradvocacy.Ticket`
+ group by workerlocation
+ order by count_of_employees desc;
+
+--  select  *
+--  from  `zendesk-assesment.customeradvocacy.Ticket`
+--  where workerlocation = 'Manila';
+
+-- TICKET 
+-- Ticket channel 
+-- no of tickets per channel( might be interesting to see the customer satisfaction per this channels)
+select TicketChannel, count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by TicketChannel 
+order by count_of_tickets desc;
+
+-- ticket group
+select TicketGroup, count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by TicketGroup 
+order by count_of_tickets desc;
+
+-- ticket created date
+-- (ticket volume over time) , tickets per month, tickets per quarter, average ticket per day,
+-- ticket volume every single day
+select TicketCreatedDate, count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by TicketCreatedDate
+order by TicketCreatedDate ;
+
+-- ticket volume every single day
+select TicketCreatedDate, EXTRACT(MONTH FROM TicketCreatedDate) AS isomonth,   count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by TicketCreatedDate
+order by TicketCreatedDate;
+--- ticket volume per month
+select EXTRACT(MONTH FROM TicketCreatedDate) AS isomonth,   count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by isomonth
+order by isomonth;
+
+-- Ticket day solved 
+select DayTicketSolved,   count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by DayTicketSolved
+order by DayTicketSolved desc;
+
+select TicketCreatedDate, EXTRACT(MONTH FROM TicketCreatedDate) AS isomonth,   count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+where DayTicketSolved is null
+group by TicketCreatedDate
+order by TicketCreatedDate;
+
+select *
+from `zendesk-assesment.customeradvocacy.Ticket`
+where DayTicketSolved is null;
+
+-- Zendesk plan - null values here why?
+
+select ZendeskPlan, count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by ZendeskPlan 
+order by count_of_tickets desc;
+
+--- AssigneeTier   
+select AssigneeTier, count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by AssigneeTier 
+order by count_of_tickets desc;
+
+select EmployeeID, AssigneeTier ,count(distinct TicketID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by EmployeeID, AssigneeTier 
+order by EmployeeID desc;
+
+select *
+from `zendesk-assesment.customeradvocacy.Ticket`
+where AssigneeTier is null;
+
+ select  WorkerLocation,  COUNT(TicketID) as count_of_tickets
+ from  `zendesk-assesment.customeradvocacy.Ticket`
+ where AssigneeTier is null
+ group by workerlocation
+ order by count_of_tickets desc;
+
+-- First reply time(firest response) - time it took Number of minutes between ticket creation and first public reply by employee
+-- by employees
+
+select FirstReplyTime, (FirstReplyTime/60) as hours, (FirstReplyTime/1440) as days
+   from  `zendesk-assesment.customeradvocacy.Ticket`;
+
+select ticketID, WorkerLocation, FirstReplyTime , AssigneeTier, FullResolutionTime,  (FirstReplyTime/60) as hours, (FirstReplyTime/1440) as days_
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ order by hours desc;
+select  FirstReplyTime , FullResolutionTime, (FirstReplyTime/60) as hours, (FirstReplyTime/1440) as days_, (FullResolutionTime/1440) as FullResolutionTimedays
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ order by hours desc;
+
+select  FirstReplyTime , FullResolutionTime, WorkerLocation, (FirstReplyTime/1440) as days_, TicketChannel, (FullResolutionTime/1440) as FullResolutionTimedays
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ where FullResolutionTime is null
+ order by days_ desc;
+
+--- Full resolution 
+select   FullResolutionTime, (FullResolutionTime/1440) as FullResolutionTimedays
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ where FullResolutionTime < 19227;
+
+--possible average resolution time
+ select sum(FullResolutionTime) / count(ticketID)
+  from  `zendesk-assesment.customeradvocacy.Ticket` 
+  where FullResolutionTime is not null and FullResolutionTime < 19227;
+
+--- comments 
+select NumAgentComments,FullResolutionTime
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+   where  FullResolutionTime > 19227
+   order by  NumAgentComments desc;
+
+-- Customer satisfaction -- 18% of the data was responsive
+select *
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+Where DayTicketSolved is not null;
+--- 
+
+select COUNT(CustomerSatisfaction)
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ Where CustomerSatisfaction = 1 and DayTicketSolved is not null;
+
+select COUNT(CustomerSatisfaction)
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ Where CustomerSatisfaction = 0 and DayTicketSolved is not null;
+
+
+select * from `zendesk-assesment.customeradvocacy.Ticket` 
+where WorkerDateHired > '2017-01-01'and  CustomerSatisfaction is not null;
+order by WorkerDateHired 
+--- 
+select count(EmployeeID), EXTRACT(MONTH FROM WorkerDateHired) as isoworkersmonth
+from `zendesk-assesment.customeradvocacy.Ticket`
+where WorkerDateHired > '2017-01-01'and  CustomerSatisfaction is not null
+group by isoworkersmonth
+order by isoworkersmonth;
