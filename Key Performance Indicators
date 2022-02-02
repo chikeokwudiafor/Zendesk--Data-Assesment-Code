@@ -1,0 +1,115 @@
+-- Performance Efficiency
+-- Average resolution time by  Location
+select  TicketCreatedDate ,WorkerLocation, avg(FullResolutionTime/60) as Average_resolutionTime_hours,
+ count(distinct TicketID) as count_of_tickets, count(distinct EmployeeID) as count_of_employees
+from `zendesk-assesment.customeradvocacy.Ticket`
+where fullresolutiontime is not null
+group by  TicketCreatedDate , WorkerLocation
+order by  count_of_tickets desc;
+
+-- Average Resolution Time
+select  avg(FullResolutionTime/60) as Average_resolutionTime_hours, count(distinct TicketID) as count_of_tickets, 
+count(distinct EmployeeID) as count_of_employees, count( distinct workerlocation) as Number_of_offices
+from `zendesk-assesment.customeradvocacy.Ticket`
+where fullresolutiontime is not null;
+
+--- Average Response time by  Location
+select  TicketCreatedDate ,WorkerLocation, avg(FirstReplyTime/60) as Average_Response_Time_hours,
+ count(distinct TicketID) as count_of_tickets, count(distinct EmployeeID) as count_of_employees
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by  TicketCreatedDate , WorkerLocation
+order by  count_of_tickets desc;
+
+--- Average Response time
+select   avg(FirstReplyTime/60) as Average_Response_Time_hours,
+ count(distinct TicketID) as count_of_tickets, count(distinct EmployeeID) as count_of_employees
+from `zendesk-assesment.customeradvocacy.Ticket` 
+order by  count_of_tickets desc;
+
+--Capacity Utilization
+-- Ticket Volume :by location, by employee
+select TicketCreatedDate, WorkerLocation ,count(distinct TicketID) as count_of_tickets, count(distinct  EmployeeID) as count_of_tickets
+from `zendesk-assesment.customeradvocacy.Ticket`
+group by TicketCreatedDate, WorkerLocation
+order by TicketCreatedDate;
+
+-- Ticket Volume by solved tickets vs open tickets:
+-- Open Tickets:
+select   count(TicketID)
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ where FullResolutionTime is not null;
+--- Closed tickets:
+ select   count(TicketID)
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ where FullResolutionTime is null;
+-- checking the times that do not have a response but it solved 
+select  count(TicketID)
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ where FullResolutionTime is not null and FirstReplyTime is null;
+
+ -- checking what percentage of closed tickets do not have a response
+ with
+ no_response as (
+     select  *
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ where FullResolutionTime is not null and FirstReplyTime is null),
+ response as (
+     select   *
+     from  `zendesk-assesment.customeradvocacy.Ticket` 
+     where FullResolutionTime is not null
+ )
+ select (count (no_response.ticketid)/count(response.TicketID))
+ from no_response 
+full outer join response on no_response.ticketid = response.TicketID 
+
+---CUSTOMER SATISFACTION SCORES
+with satisfied_cte as 
+(
+select *
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ Where CustomerSatisfaction = 1 and DayTicketSolved is not null
+), 
+total_cte as
+(
+select *
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ Where DayTicketSolved is not null and CustomerSatisfaction is not null
+)
+select  total_cte.TicketCreatedDate,
+total_cte.WorkerLocation, total_cte.EmployeeID, total_cte.ZendeskPlan, total_cte.AssigneeTier, total_cte.workerDateHired, 
+(count(satisfied_cte.CustomerSatisfaction)/count(total_cte.CustomerSatisfaction))*100 as CSAT_score, 
+count(total_cte.CustomerSatisfaction) as total_rated_tickets, (total_cte.fullresolutiontime/60) as resolution_hours,
+total_cte.TicketChannel, total_cte.DayTicketSolved, (total_cte.FirstReplyTime/60) as FirstReponseTimeHours
+from satisfied_cte 
+ full outer join  total_cte on 
+satisfied_cte.ticketid = total_cte.ticketID
+group by total_cte.TicketCreatedDate, total_cte.WorkerLocation, total_cte.ZendeskPlan, 
+total_cte.AssigneeTier, total_cte.EmployeeID,total_cte.workerDateHired, 
+total_cte.TicketChannel, total_cte.DayTicketSolved,total_cte.fullresolutiontime, total_cte.FirstReplyTime 
+order by total_cte.TicketCreatedDate;
+
+
+---CSAT Score:by channel
+with satisfied_cte as 
+(
+select *
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ Where CustomerSatisfaction = 1 and DayTicketSolved is not null
+), 
+total_cte as
+(
+select *
+ from  `zendesk-assesment.customeradvocacy.Ticket` 
+ Where DayTicketSolved is not null and CustomerSatisfaction is not null
+)
+select  total_cte.TicketCreatedDate,
+total_cte.WorkerLocation,
+(count(satisfied_cte.CustomerSatisfaction)/count(total_cte.CustomerSatisfaction))*100 as CSAT_score, 
+count(total_cte.CustomerSatisfaction) as total_rated_tickets
+from satisfied_cte 
+full outer join  total_cte on 
+satisfied_cte.ticketid = total_cte.ticketID
+group by total_cte.TicketCreatedDate, total_cte.WorkerLocation
+order by total_cte.TicketCreatedDate
+
+
